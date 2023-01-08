@@ -30,8 +30,18 @@ class SpotifyTool:
         api = spotipy.Spotify(auth)
         return api
 
-    def fetch_songs(self):
-        # Logic for pulling songs from Spotify
+    def fetch_data(self):
+        # Logic for pulling listening datafrom Spotify
+        pass
+
+    def process_data(self):
+        # Logic for formatting listening data
+        pass
+
+    def import_to_bq(self):
+        # Logic for importing to BQ
         pass
 
     
+
+
