@@ -1,12 +1,6 @@
 import os
-import requests
-from google.cloud import language_v1
-import spacy
-from spacy.matcher import Matcher
 from google.oauth2 import service_account
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-import grequests
+import requests
 
 class SpotifyTool:
     def __init__(self) -> None:
@@ -18,21 +12,48 @@ class SpotifyTool:
 
     def get_api(self):
 
-        redirect_uri = 'tbd'
-        access_id = os.environ.get('SPOTIFY_ID')
-        access_secret = os.environ.get('SPOTIFY_SECRET')
-        auth = SpotifyOAuth(
-            client_id = access_id,
-            client_secret = access_secret,
-            redirect_uri = redirect_uri
-        )
+        redirect_uri = 'http://localhost'
+        access_id = os.getenv('SPOTIPY_CLIENT_ID')
+        access_secret = os.getenv('SPOTIFY_SECRET')
+        scopes = 'user-read-private user-read-email'
+        try:
+            AUTH_URL = 'https://accounts.spotify.com/api/token'
+            auth_resp = requests.post(AUTH_URL, {
+                'grant_type': 'client_credentials',
+                'client_id': access_id,
+                'client_secret': access_secret
+            })
 
-        api = spotipy.Spotify(auth)
-        return api
+            data = auth_resp.json()
+            print(data)
+            # resp = requests.request(
+            #     'GET',
+            #     'https://accounts.spotify.com/authorize',
+            #     {
+            #         'response_type': 'code',
+            #         'client_id': access_id,
+
+            #     }
+            # )
+            # print(resp.status_code)
+        except:
+            print("Could not get bearer token")
+        
+        
+        header = {
+
+        }
+        
+        
+        # return api
 
     def fetch_data(self):
         # Logic for pulling listening datafrom Spotify
-        pass
+        results = self.api_conn.current_user_saved_tracks()
+        for idx, item in enumerate(results['items']):
+            track = item['track']
+            print(idx, track['artists'][0]['name'], " – ", track['name'])
+        # pass
 
     def process_data(self):
         # Logic for formatting listening data
@@ -42,6 +63,8 @@ class SpotifyTool:
         # Logic for importing to BQ
         pass
 
-    
+if __name__ == "__main__":
+    spotify = SpotifyTool()
+    spotify.get_api()
 
 
