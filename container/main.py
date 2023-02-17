@@ -1,6 +1,7 @@
 import os
 from google.oauth2 import service_account
 import requests
+import base64
 
 class SpotifyTool:
     def __init__(self) -> None:
@@ -12,37 +13,27 @@ class SpotifyTool:
 
     def get_api(self):
 
-        redirect_uri = 'http://localhost'
-        access_id = os.getenv('SPOTIPY_CLIENT_ID')
-        access_secret = os.getenv('SPOTIFY_SECRET')
-        scopes = 'user-read-private user-read-email'
+        access_id = os.getenv('SPOTIFY_CLIENT_ID')
+        access_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
+        redirect_uri = os.getenv('SPOTIFY_REDIRECT_URI')
+        scopes = "user-read-private user-read-email"
+        
         try:
-            AUTH_URL = 'https://accounts.spotify.com/api/token'
-            auth_resp = requests.post(AUTH_URL, {
-                'grant_type': 'client_credentials',
-                'client_id': access_id,
-                'client_secret': access_secret
-            })
+            auth_url = "https://accounts.spotify.com/api/token"
+            headers = {}
+            data = {}
 
-            data = auth_resp.json()
-            print(data)
-            # resp = requests.request(
-            #     'GET',
-            #     'https://accounts.spotify.com/authorize',
-            #     {
-            #         'response_type': 'code',
-            #         'client_id': access_id,
+            message = f"{access_id}:{access_secret}"
+            messageBytes = message.encode('ascii')
+            base64Bytes = base64.b64encode(messageBytes)
+            base64Message = base64Bytes.decode('ascii')
 
-            #     }
-            # )
-            # print(resp.status_code)
+            headers['Authorization'] = f"Basic {base64Message}"
+            data['grant_type'] = "client_credentials"
+
+            r = requests.post(url=auth_url, headers=headers, data=data)
         except:
             print("Could not get bearer token")
-        
-        
-        header = {
-
-        }
         
         
         # return api
