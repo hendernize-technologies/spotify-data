@@ -1,0 +1,45 @@
+name: Build and Push Docker Image to Container Registry
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'container/**'
+  pull_request:
+    branches:
+      - master
+
+env:
+  GCR_PROJECT_ID: 'spotify-data'
+  GCR_REPO_NAME: 'spotify-data'
+
+jobs:
+  build-and-push:
+    name: Build and Push Image to GCR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCR_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Build Docker Image
+        run: |
+          docker build \
+            -t gcr.io/${{ env.GCR_PROJECT_ID }}/${{ env.GCR_REPO_NAME }}:latest \
+            -t gcr.io/${{ env.GCR_PROJECT_ID }}/${{ env.GCR_REPO_NAME }}:${{ github.sha }} \
+            .
+
+      - name: Push Docker Image
+        run: |
+          docker push gcr.io/${{ env.GCR_PROJECT_ID }}/${{ env.GCR_REPO_NAME }}:latest
+          docker push gcr.io/${{ env.GCR_PROJECT_ID }}/${{ env.GCR_REPO_NAME }}:${{ github.sha }}
