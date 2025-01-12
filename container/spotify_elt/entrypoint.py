@@ -1,47 +1,39 @@
 import os
 from google.oauth2 import service_account
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-import logging
+from helpers import Helpers
 
-class SpotifyExtractLoad:
+
+class SpotifyExtractLoad(Helpers):
+    """
+    This is the main class for the Spotify Extract Load (ELT) pipeline.
+
+    This class is responsible for fetching data from the Spotify API, processing the data, and importing it to BigQuery.
+
+    Class methods:
+        __init__: Initializes the class and sets up the logger.
+        _fetch_data: Fetches data from the Spotify API.
+        _process_data: Processes the data.
+        _import_to_bq: Imports the data to BigQuery.
+
+    Class attributes:
+        api_conn: The Spotify API connection.
+    """
+
     def __init__(self) -> None:
-        self.logger = self.__set_logger()
-        self.logger.debug('Logger initialized for %s', self.__class__.__name__)
-        
+        super().__init__()
+
         try:
-            self.api_conn = self.get_api_conn()
+            self.api_conn = self._get_api_conn(
+                client_id=self.client_id,
+                client_secret=self.client_secret,
+                scope=self.scope
+            )
         except:
-            self.logger.debug('Could not initialize connection to Spotify API. Please check API creds.')
+            self.logger.debug(
+                'Could not initialize connection to Spotify API. Please check API creds.')
 
-    def __set_logger(self):
-        logger = logging.getLogger(self.__class__.__name__)
-        logger.setLevel(logging.DEBUG)
-        
-        stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(logging.DEBUG)
+    def _fetch_data(self):
 
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        stream_handler.setFormatter(formatter)
-
-        logger.addHandler(stream_handler)
-
-        return logger
-    
-    def get_api_conn(self):
-        # TODO - in progress, being refactored
-        # Get auth token from env
-        try:
-            SPOTIPY_TOKEN = os.getenv('SPOTIPY_TOKEN')
-            api_conn = spotipy.Spotify(auth=SPOTIPY_TOKEN)
-        except:
-            print('Could not get API token for auth flow - refreshing token...')
-            # logic for refresh?
-        
-        return api_conn
-
-    def fetch_data(self):
-        
         # Logic for pulling listening data from Spotify
         results = self.api_conn.current_user_saved_tracks()
         for idx, item in enumerate(results['items']):
@@ -49,14 +41,17 @@ class SpotifyExtractLoad:
             print(idx, track['artists'][0]['name'], " – ", track['name'])
 
         track = self.api_conn.current_user_top_tracks(
-            limit=20, 
-            offset=0, 
+            limit=20,
+            offset=0,
             time_range='medium_term'
         )
-        
+
         print(track)
 
-    def process_data(self):
+        user_profile = self.api_conn.current_user()
+        print(user_profile)
+
+    def _process_data(self):
         # Logic for formatting listening data
         pass
 
@@ -67,4 +62,4 @@ class SpotifyExtractLoad:
 
 if __name__ == "__main__":
     spotify = SpotifyExtractLoad()
-    spotify.fetch_data()
+    spotify._fetch_data()

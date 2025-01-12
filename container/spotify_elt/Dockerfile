@@ -1,9 +1,8 @@
-FROM python:3.7.6
+FROM python:3.10-slim-buster
 
-EXPOSE 8080
+WORKDIR /usr/src/app
 
 ADD ./container /container
-WORKDIR /container
 
 COPY requirements.txt /container
 ENV variables.env /stonk-scraper
@@ -11,4 +10,4 @@ RUN pip install -r requirements.txt --upgrade pip
 
 COPY . /container
 
-# CMD tbd
+ENTRYPOINT [ "python", "./entrypoint.py" ]
