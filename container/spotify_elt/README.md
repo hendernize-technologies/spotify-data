@@ -109,3 +109,19 @@ docker build -t spotify-elt .
 docker run -e SPOTIFY_CLIENT_ID=xxx \
 -e SPOTIFY_CLIENT_SECRET=xxx \
 spotify-elt
+
+### Adding New Features
+
+1. Create feature branch
+2. Update container code
+3. Test locally
+4. Create PR for review
+5. Merge to trigger automatic container build and push
+
+## Contributing
+
+Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

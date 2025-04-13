@@ -1,0 +1,16 @@
+[project]
+name = "spotify_data"
+version = "0.1.0"
+description = "Data pipeline for ELT of personal and public Spotify data"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.2.0",
+    "requests==2.31.0",
+    "polars>=1.20.0",
+    "google-cloud-storage==1.29.0"
+]
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
