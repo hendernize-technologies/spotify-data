@@ -1,6 +1,6 @@
 import os
 from google.oauth2 import service_account
-from helpers import Helpers
+from container.spotify_elt.modules.utils.helpers import Helpers
 
 
 class SpotifyExtractLoad(Helpers):

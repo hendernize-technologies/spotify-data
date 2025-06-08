@@ -1,13 +1,20 @@
-FROM python:3.10-slim-buster
+FROM python:3.10-slim as builder
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /usr/src/app
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-ADD ./container /container
+ENV PATH="/root/.cargo/bin:${PATH}"
 
-COPY requirements.txt /container
-ENV variables.env /stonk-scraper
-RUN pip install -r requirements.txt --upgrade pip
+WORKDIR /app
 
-COPY . /container
+ADD . /app
+
+RUN uv sync --frozen --no-install-project --no-editable
+
+RUN uv sync --frozen --no-editable
+
+COPY --from=builder /app/modules /app/modules
 
 ENTRYPOINT [ "python", "./entrypoint.py" ]
