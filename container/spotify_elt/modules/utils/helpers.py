@@ -1,14 +1,11 @@
 import logging
-import datetime
+import os
+
 import spotipy
-from google.cloud import secretmanager
 from google.api_core import exceptions as google_exceptions
-from google.api_core import retry
 
 
-
-
-class Utils():
+class Utils:
     """
     Utility package for the Spotify Extract Load (ELT) pipeline.
 
@@ -35,18 +32,18 @@ class Utils():
     def __init__(self):
         try:
             self.logger = self.__set_logger()
-            self.logger.debug('Logger initialized for %s',
-                              self.__class__.__name__)
+            self.logger.debug("Logger initialized for %s", self.__class__.__name__)
         except:
             raise ValueError(
-                'Could not initialize logger for %s', self.__class__.__name__)
+                "Could not initialize logger for %s", self.__class__.__name__
+            )
 
         self.scope = "user-library-read user-read-private user-read-email user-top-read"
         self.secret_client = "secretmanager.SecretManagerServiceClient()"
 
-        self.client_id = self._get_secret('SPOTIFY_CLIENT_ID')
-        self.client_secret = self._get_secret('SPOTIFY_CLIENT_SECRET')
-        self.refresh_token = self._get_secret('SPOTIFY_REFRESH_TOKEN')
+        self.client_id = self._get_secret("SPOTIFY_CLIENT_ID")
+        self.client_secret = self._get_secret("SPOTIFY_CLIENT_SECRET")
+        self.refresh_token = self._get_secret("SPOTIFY_REFRESH_TOKEN")
 
     # TODO - implement retry logic
     def _get_secret(self, secret_name: str):
@@ -60,18 +57,16 @@ class Utils():
             str: The secret value.
 
         Raises:
-            ValueError: If the secret is not found or there is an unexpected error. 
+            ValueError: If the secret is not found or there is an unexpected error.
         """
 
         try:
             name = f"projects/{os.getenv('GCP_PROJECT')}/secrets/{secret_name}/versions/latest"
-            response = self.secret_client.access_secret_version(
-                request={"name": name})
+            response = self.secret_client.access_secret_version(request={"name": name})
             return response.payload.data.decode("UTF-8")
 
         except google_exceptions.PermissionDenied:
-            self.logger.error(
-                f"Permission denied accessing secret: {secret_name}")
+            self.logger.error(f"Permission denied accessing secret: {secret_name}")
             raise ValueError(f"No permission to access secret: {secret_name}")
 
         except google_exceptions.NotFound:
@@ -80,44 +75,38 @@ class Utils():
 
         except google_exceptions.ResourceExhausted:
             self.logger.error(
-                f"Rate limit exceeded when accessing secret: {secret_name}")
+                f"Rate limit exceeded when accessing secret: {secret_name}"
+            )
             raise ValueError("Too many requests to Secret Manager")
 
         except Exception as e:
             self.logger.error(
-                f"An unexpected error occurred while attempting to fetch {secret_name}: {str(e)}")
+                f"An unexpected error occurred while attempting to fetch {secret_name}: {str(e)}"
+            )
             raise ValueError(
-                f"Failed to retrieve secret {secret_name} due to unexpected error {str(e)}")
+                f"Failed to retrieve secret {secret_name} due to unexpected error {str(e)}"
+            )
 
-    def _get_api_conn(
-        self,
-        client_id: str,
-        client_secret: str,
-        scope: str
-    ):
+    def _get_api_conn(self, client_id: str, client_secret: str, scope: str):
         sp_oauth = spotipy.oauth2.SpotifyOAuth(
             client_id=client_id,
             client_secret=client_secret,
             redirect_uri="http://localhost/callback",
-            scope=scope
+            scope=scope,
         )
 
         token_info = sp_oauth.refresh_access_token(self.refresh_token)
-        token = token_info['access_token']
+        token = token_info["access_token"]
 
         if not token:
-            raise ConnectionError('Could not get an API token for Spotify')
+            raise ConnectionError("Could not get an API token for Spotify")
 
         sp = spotipy.Spotify(auth=token)
 
         return sp
 
     def _initial_auth_setup(
-        self,
-        client_id: str,
-        client_secret: str,
-        redirect_uri: str,
-        scope: str
+        self, client_id: str, client_secret: str, redirect_uri: str, scope: str
     ):
         """
         Logic to generate refresh token.
@@ -128,7 +117,7 @@ class Utils():
             client_id=client_id,
             client_secret=client_secret,
             redirect_uri="http://localhost/callback",
-            scope=scope
+            scope=scope,
         )
 
         """This generates the URL to visit in the browser"""
@@ -141,7 +130,7 @@ class Utils():
         token_info = auth_manager.get_access_token(code)
 
         """Save the refresh token"""
-        refresh_token = token_info['refresh_token']
+        refresh_token = token_info["refresh_token"]
         return refresh_token
 
     def upload_to_gcs(self):
@@ -158,7 +147,8 @@ class Utils():
             stream_handler = logging.StreamHandler()
             stream_handler.setLevel(logging.DEBUG)
             formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            )
             stream_handler.setFormatter(formatter)
 
             logger.addHandler(stream_handler)
