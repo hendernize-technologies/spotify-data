@@ -1,22 +1,37 @@
-from google.cloud import storage
-from typing import Optional
-from google.oauth2 import service_account
-from utils.utils import Utils
-from enum import Enum, StrEnum
-from google.api_core.exceptions import NotFound, Forbidden, TooManyRequests, GoogleAPIError
-from google.auth.exceptions import DefaultCredentialsError
 import re
+from datetime import date
+from enum import StrEnum
+from typing import Optional
+
+from google.api_core.exceptions import Forbidden, GoogleAPIError, NotFound
+from google.auth.exceptions import DefaultCredentialsError
+from google.cloud import storage
+
 
 class GCSUtils:
     def __init__(self):
         self.gcs_client = self.__create_gcs_client()
-    
-    def upload_to_gcs(self, bucket_name: str, destination_blob_name: Optional[str], source_file_path: str):
+
+    def upload_to_gcs(
+        self,
+        bucket_name: str,
+        endpoint: str,
+        destination_path: Optional[str],
+        destination_filename: str,
+        source_file_path: str,
+        current_date: Optional[str] = None,
+    ):
         bucket = self.__get_bucket(bucket_name)
-        if not destination_blob_name:
-            destination_blob_name = self.__path_builder()
+        if not destination_path:
+            destination_blob_name = self.__path_builder(
+                bucket_name, endpoint, destination_filename, current_date
+            )
+        else:
+            destination_blob_name = f"{destination_path}/{destination_filename}"
+
         if not self.__is_valid_blob(destination_blob_name):
             raise GCSUtilsError(GCSErrorTypes.INVALID_OBJECT_NAME)
+
         try:
             blob = bucket.blob(destination_blob_name)
             blob.upload_from_filename(source_file_path)
@@ -24,10 +39,10 @@ class GCSUtils:
             raise GCSUtilsError(GCSErrorTypes.PERMISSION_DENIED)
         except GoogleAPIError:
             raise GCSUtilsError(GCSErrorTypes.STORAGE_ERROR)
-        
+
     def __create_gcs_client(self) -> storage.Client:
         """Creates a GCS client via creds from Google Secret Manager.
-        
+
         Credentials are injected via apache-airflow-providers-google.
 
         Returns:
@@ -41,15 +56,15 @@ class GCSUtils:
             # Create client with creds from secret manager, todo
         except DefaultCredentialsError:
             raise GCSUtilsError(GCSErrorTypes.AUTHENTICATION_ERROR)
-        
+
         return gcs_client
-    
+
     def __get_bucket(self, bucket_name: str) -> storage.Bucket:
         """Fetch a GCS bucket by name.
-        
+
         Args:
             bucket_name (str): The name of the GCS bucket to fetch.
-        
+
         Returns:
             storage.Bucket: The GCS bucket object.
 
@@ -66,7 +81,7 @@ class GCSUtils:
 
     def __is_valid_blob(self, blob_name: str):
         """Validate blob name against GCS naming conventions.
-        
+
         Args:
             blob_name (str): The name of the blob to validate.
 
@@ -78,14 +93,21 @@ class GCSUtils:
 
         return is_valid
 
-    def __path_builder(self):
-        """Build a GCS path for the blob based on current date and time.
-        
-        
-        """
-        pass
-        
-    
+    def __path_builder(
+        self,
+        bucket_name: str,
+        endpoint: str,
+        destination_filename: str,
+        current_date: str = None,
+    ) -> str:
+        """Build a GCS path for the blob based on current date and time."""
+
+        finalized_date = current_date if current_date else date.today()
+        path = f"{endpoint}/{finalized_date}/{destination_filename}"
+
+        return path
+
+
 class GCSErrorTypes(StrEnum):
     BUCKET_NOT_FOUND = "BucketNotFound"
     INVALID_OBJECT_NAME = "InvalidObjectName"
