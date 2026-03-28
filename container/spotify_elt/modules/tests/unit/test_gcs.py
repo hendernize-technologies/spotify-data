@@ -51,16 +51,21 @@ class TestGCSUtils:
 
     def test_path_builder(self, gcs_client):
         path_combinations = [
-            ("songs", "songs_3_28_2025.parquet", "3_28_2025"),
-            ("songs", "songs_3_28_2025.parquet", "3/28/2025"),
-            ("songs", "songs_3_28_2025.parquet"),
+            ("songs", "songs_3_28_2026.parquet", "3_28_2026"),
+            ("songs", "songs_3_28_2026.parquet", "3-28-2026"),
+            ("songs", "songs_3_28_2026.parquet", "3/28/2026"),
+            ("songs", "songs_3_28_2026.parquet"),
         ]
 
         for path in path_combinations:
             endpoint = path[0]
             destination_filename = path[1]
-            current_date = path[2] if path[2] else date.today()
+            current_date = path[2] if len(path) == 3 else None
             result = gcs_client._GCSUtils__path_builder(
                 endpoint, destination_filename, current_date
             )
-            assert result == "songs/2025-03-28/songs_3_28_2025.parquet"
+            if not current_date:
+                assert result == "songs/2026-03-28/songs_3_28_2026.parquet"
+            else:
+                formatted = date.today().strftime("%Y-%m-%d")
+                assert result == f"songs/{formatted}/songs_3_28_2026.parquet"

@@ -131,11 +131,12 @@ class GCSUtils:
             A formatted string path.
         """
         if current_date:
-            if "/" in current_date:
+            if type(current_date) is str and "/" in current_date:
                 finalized_date = datetime.strptime(current_date, "%m/%d/%Y").strftime(
                     "%Y-%m-%d"
                 )
             else:
+                current_date = current_date.replace("_", "-")
                 finalized_date = parse(current_date).strftime("%Y-%m-%d")
         else:
             finalized_date = date.today().strftime("%Y-%m-%d")
