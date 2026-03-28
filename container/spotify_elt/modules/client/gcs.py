@@ -1,8 +1,9 @@
 import re
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 from typing import Optional
 
+from dateutil.parser import parse
 from google.api_core.exceptions import Forbidden, GoogleAPIError, NotFound
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import storage
@@ -16,15 +17,35 @@ class GCSUtils:
         self,
         bucket_name: str,
         endpoint: str,
-        destination_path: Optional[str],
         destination_filename: str,
         source_file_path: str,
+        destination_path: Optional[str] = None,
         current_date: Optional[str] = None,
     ):
+        """Upload a file to a GCS bucket.
+
+        Builds or uses a provided destination path, validates the blob name,
+        and uploads the local file.
+
+        Args:
+            bucket_name (str): The name of the GCS bucket.
+            endpoint (str): The Spotify API endpoint name, used for path building.
+            destination_path (Optional[str]): Explicit blob path. If None, path is
+                built from endpoint, filename, and date.
+            destination_filename (str): The filename for the uploaded blob.
+            source_file_path (str): Local path to the file to upload.
+            current_date (Optional[str]): Date string for path building. Defaults to
+                today if not provided. Accepts YYYY-MM-DD or MM/DD/YYYY formats.
+
+        Raises:
+            GCSUtilsError: INVALID_OBJECT_NAME if blob name contains invalid characters.
+            GCSUtilsError: PERMISSION_DENIED if credentials lack write access.
+            GCSUtilsError: STORAGE_ERROR for any other GCS API failure.
+        """
         bucket = self.__get_bucket(bucket_name)
         if not destination_path:
             destination_blob_name = self.__path_builder(
-                bucket_name, endpoint, destination_filename, current_date
+                endpoint, destination_filename, current_date
             )
         else:
             destination_blob_name = f"{destination_path}/{destination_filename}"
@@ -95,14 +116,30 @@ class GCSUtils:
 
     def __path_builder(
         self,
-        bucket_name: str,
         endpoint: str,
         destination_filename: str,
         current_date: str = None,
     ) -> str:
-        """Build a GCS path for the blob based on current date and time."""
+        """Build a GCS path for the blob based on endpoint, filename, and current date.
 
-        finalized_date = current_date if current_date else date.today()
+        Args:
+            endpoint (str): Name of Spotify API endpoint.
+            destination_filename (str): Filename for upload.
+            current_date (str): Date for the file upload.
+
+        Returns:
+            A formatted string path.
+        """
+        if current_date:
+            if "/" in current_date:
+                finalized_date = datetime.strptime(current_date, "%m/%d/%Y").strftime(
+                    "%Y-%m-%d"
+                )
+            else:
+                finalized_date = parse(current_date).strftime("%Y-%m-%d")
+        else:
+            finalized_date = date.today().strftime("%Y-%m-%d")
+
         path = f"{endpoint}/{finalized_date}/{destination_filename}"
 
         return path
